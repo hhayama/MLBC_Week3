@@ -18,7 +18,7 @@ def fetch(out_path: Path = RAW_DATA) -> None:
     training data cannot shift between runs. All connection details come
     from the environment; code never knows which database it is pointed at.
     """
-    load_dotenv()
+    load_dotenv(override=True)
     engine = create_engine(
         "postgresql://{user}:{password}@{host}:{port}/{name}".format(
             user=os.environ["DB_USER"],
