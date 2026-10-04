@@ -2,6 +2,7 @@ import json
 import mlflow
 import mlflow.xgboost 
 
+from dotenv import load_dotenv
 from pathlib import Path
 
 from sklearn.metrics import roc_auc_score
@@ -10,6 +11,8 @@ from xgboost import XGBClassifier
 
 from trial_conversion_model.data import load_processed
 from trial_conversion_model.features import TARGET
+
+load_dotenv(override=True)
 
 MODEL_DIR = Path("models")
 TEST_SIZE = 0.25
