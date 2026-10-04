@@ -1,4 +1,7 @@
 import json
+import mlflow
+import mlflow.xgboost 
+
 from pathlib import Path
 
 from sklearn.metrics import roc_auc_score
@@ -10,8 +13,18 @@ from trial_conversion_model.features import TARGET
 
 MODEL_DIR = Path("models")
 TEST_SIZE = 0.25
-RANDOM_STATE = 42
+RANDOM_STATE = 4
+PARAMS = {
+    "n_estimators": 400,
+    "max_depth": 3,
+    "learning_rate": 0.05,
+    "min_child_weight": 8,
+    "subsample": 0.9,
+    "colsample_bytree": 0.9,
+    "eval_metric": "auc", 
+}
 
+mlflow.set_experiment('trail-conversion-model')
 
 def train(model_dir: Path = MODEL_DIR) -> dict:
     """Train the trial conversion model from the processed training table."""
@@ -22,18 +35,22 @@ def train(model_dir: Path = MODEL_DIR) -> dict:
         X, y, test_size=TEST_SIZE, stratify=y, random_state=RANDOM_STATE
     )
 
-    model = XGBClassifier(
-        n_estimators=400,
-        max_depth=3,
-        learning_rate=0.05,
-        min_child_weight=8,
-        subsample=0.9,
-        colsample_bytree=0.9,
-        eval_metric="auc",
-    )
-    model.fit(X_train, y_train)
+    with mlflow.start_run():
+        # Log hyperparameters
+        mlflow.log_params(PARAMS)
+        
+        # Train Model
+        model = XGBClassifier(**PARAMS)
+        model.fit(X_train, y_train)
 
-    auc = roc_auc_score(y_test, model.predict_proba(X_test)[:, 1])
+        # Log the model
+        model_info = mlflow.xgboost.log_model(xgb_model = model, name='trial_conversion_model')
+
+        # Predict on the test set and log auc 
+        auc = roc_auc_score(y_test, model.predict_proba(X_test)[:, 1])
+        mlflow.log_metric('auc', auc)
+
+        mlflow.set_tag("MLBC - Week 3", "Setting up mlflow and testing it out")
 
     model_dir.mkdir(exist_ok=True)
     model.save_model(model_dir / "model.json")
